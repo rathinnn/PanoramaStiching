@@ -22,8 +22,8 @@ function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRati
     P_remaining=remaining(:,3:4);
     model=fitFcn(maybeinliers);
     
-    pred=model*Q_remaining';
-    error=pred'-P_remaining;
+    pred=Q_remaining*model;
+    error=pred-P_remaining;
     
     error2 = error(:,1).^2+error(:,2).^2;
     trueerror = sqrt(error2);
@@ -47,8 +47,8 @@ function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRati
          
          bettermodel=fitFcn([alsoinliers;maybeinliers]);
          
-         betterpred=bettermodel*[alsoinliers(:,1:2);maybeinliers(:,1:2)]';
-         prerror=betterpred'-[alsoinliers(:,3:4);maybeinliers(:,3:4)];
+         betterpred=[alsoinliers(:,1:2);maybeinliers(:,1:2)]*bettermodel;
+         prerror=betterpred-[alsoinliers(:,3:4);maybeinliers(:,3:4)];
          
          thiserr=computeError(prerror);
          
