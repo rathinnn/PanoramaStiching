@@ -1,4 +1,4 @@
-function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRatio)
+function [bestmodel goodt inlier besterr] = ransac(data,num,iter,threshDist,inlierRatio)
  % data: a mx4 dataset with #n data points
  % num: the minimum number of points. For line fitting problem, num=2
  % iter: the number of iterations
@@ -20,9 +20,9 @@ function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRati
     remaining(idx,:)=[];
     Q_remaining=remaining(:,1:2);
     P_remaining=remaining(:,3:4);
-    model=fitFcn(maybeinliers);
+    [model t1]=goodAffine(maybeinliers);
     
-    pred=Q_remaining*model;
+    pred=(model*Q_remaining'+t1)';
     error=pred-P_remaining;
     
     error2 = error(:,1).^2+error(:,2).^2;
@@ -45,9 +45,9 @@ function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRati
     if inlierNum>=round(inlierRatio*number) 
          
          
-         bettermodel=fitFcn([alsoinliers;maybeinliers]);
+         [bettermodel t2]=goodAffine([alsoinliers;maybeinliers]);
          
-         betterpred=[alsoinliers(:,1:2);maybeinliers(:,1:2)]*bettermodel;
+         betterpred=[bettermodel*[alsoinliers(:,1:2);maybeinliers(:,1:2)]'+t2]';
          prerror=betterpred-[alsoinliers(:,3:4);maybeinliers(:,3:4)];
          
          thiserr=computeError(prerror);
@@ -57,6 +57,7 @@ function [bestmodel inlier besterr] = ransac(data,num,iter,threshDist,inlierRati
      if thiserr<besterr
     inlierNum
     bestmodel=bettermodel;
+    goodt=t2;
     besterr=thiserr;
     inlier=[alsoinliers;maybeinliers];
     

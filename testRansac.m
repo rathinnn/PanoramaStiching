@@ -18,17 +18,18 @@ P(I,2)=P(I,2)*4.*randn(length(I),1);
 
 
 
-[modelRANSAC, inliers,error] = ransac([Q P],2,1000,14,0.8);
-model=fitFcn([Q P]);
+[modelRANSAC ,modelt,inliers,error] = ransac([Q P],2,1000,90,0.8);
+%model=fitFcn([Q P]);
 scatter(P(:,1),P(:,2))
 hold on
 
 scatter(inliers(:,3),inliers(:,4))
 hold off
 
-model
-modelRANSAC
 
-model=modelAffine(inliers)
+modelRANSAC
+modelt
+
+
 
 
