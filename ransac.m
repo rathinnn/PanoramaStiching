@@ -1,76 +1,74 @@
-function [bestmodel goodt inlier besterr] = ransac(data,num,iter,threshDist,inlierRatio)
- % data: a mx4 dataset with #n data points
- % num: the minimum number of points. For line fitting problem, num=2
- % iter: the number of iterations
- % threshDist: the threshold of the distances between points and the fitting line
- % inlierRatio: the threshold of the number of inliers 
- 
- check=0;
- number = size(data,1); % Total number of points
- bestInNum = 0; % Best fitting line with largest number of inliers
- bestmodel=[];
- besterr=1000000000;
- for i=1:iter
-     alsoinliers=[];
- %% Randomly select 2 points
-     idx = randperm(number,num); maybeinliers = data(idx,:);
-     Q=data(:,1:2); P=data(:,3:4);
- %% Compute the distances between all points with the fitting line 
-    remaining=data;
-    remaining(idx,:)=[];
-    Q_remaining=remaining(:,1:2);
-    P_remaining=remaining(:,3:4);
-    [model t1]=goodAffine(maybeinliers);
-    
-    pred=(model*Q_remaining'+t1)';
-    error=pred-P_remaining;
-    
-    error2 = error(:,1).^2+error(:,2).^2;
-    trueerror = sqrt(error2);
-    
-    [I] = find(abs(trueerror)<=threshDist);
-    
-    alsoinliers=remaining(I,:);
-    
-     inlierNum = size(alsoinliers,1)+num;
-     
-     
- %% Compute the inliers with distances smaller than the threshold
+function H = RANSAC(Points1, Points2, match, Iterations, minNumber, error, inlierratio )
 
- %% Update the number of inliers and fitting model if better model is found     
-     
- 
-    
- 
-    if inlierNum>=round(inlierRatio*number) 
-         
-         
-         [bettermodel t2]=goodAffine([alsoinliers;maybeinliers]);
-         
-         betterpred=[bettermodel*[alsoinliers(:,1:2);maybeinliers(:,1:2)]'+t2]';
-         prerror=betterpred-[alsoinliers(:,3:4);maybeinliers(:,3:4)];
-         
-         thiserr=computeError(prerror);
-         
-         
-         check=1;
-     if thiserr<besterr
-    inlierNum
-    bestmodel=bettermodel;
-    goodt=t2;
-    besterr=thiserr;
-    inlier=[alsoinliers;maybeinliers];
-    
-    end
-        
-    
+
+   
+    N = size(match, 1);
+   
+    if ~exist('Iterations', 'var')
+        Iterations = 200;
     end
     
+    minNumber = max(minNumber,3);
+   
+    if ~exist('inlierratio', 'var')
+        inlierratio = floor(0.7 * N);
+    end
+    H = eye(3);
     
     
-     
- end
+    bestDist = Inf;
+    
+    
+    
+    for i = 1 : Iterations
+        [part1, part2] = split(match, minNumber);
+        tempModel = modelAffine(Points1(part1(:, 1), :), Points2(part1(:, 2), :));
+        currenterror = EuclidDist(tempModel, Points1, Points2, part2);
+        epsilon = (currenterror <= error);
+        if sum(epsilon(:)) + minNumber >= inlierratio
+            zeta = [part1; part2(epsilon, :)];
+            tempModel = modelAffine(Points1(zeta(:, 1), :), Points2(zeta(:, 2), :));
+            theta = sum(EuclidDist(tempModel, Points1, Points2, zeta));
+            if theta < bestDist
+                H = tempModel;
+                
+                bestDist = theta;
+            end
+        end
+    end
 
- if check==0
-     fprintf('No RANSAC Fit found')
+    
 end
+
+function dists = EuclidDist(H, pt1, pt2, match)
+
+    
+    [M , ~] = size(match);
+    Points1 = [pt1(match(:, 1),:), ones(M,1)]*H';
+    Points2 = [pt2(match(:, 2),:), ones(M,1)];
+    dists = sqrt(sum((Points2 - Points1).^2, 2));
+
+
+    
+end
+
+function [D1, D2] = split(match, splitSize)
+    idx = randperm(size(match, 1));
+    D1 = match(idx(1:splitSize), :);
+    D2 = match(idx(splitSize+1:end), :);
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
